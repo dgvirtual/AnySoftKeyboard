@@ -69,6 +69,7 @@ public abstract class AnySoftKeyboardBase extends InputMethodService
   private boolean mInputViewStarted = false;
   private AnimationsLevel mAnimationsLevel = AnimationsLevel.Some;
   private final CompositeDisposable mServiceDisposables = new CompositeDisposable();
+  @Nullable private Configuration mLastConfiguration = null;
 
   private static final ExtractedTextRequest EXTRACTED_TEXT_REQUEST = new ExtractedTextRequest();
 
@@ -101,6 +102,7 @@ public abstract class AnySoftKeyboardBase extends InputMethodService
         BuildConfig.VERSION_CODE);
     super.onCreate();
     mOrientation = getResources().getConfiguration().orientation;
+    mLastConfiguration = new Configuration(getResources().getConfiguration());
     if (!BuildConfig.DEBUG && DeveloperUtils.hasTracingRequested(getApplicationContext())) {
       try {
         DeveloperUtils.startTracing();
@@ -230,13 +232,39 @@ public abstract class AnySoftKeyboardBase extends InputMethodService
   @Override
   public void onConfigurationChanged(Configuration newConfig) {
     ((AnyApplication) getApplication()).setNewConfigurationToAllAddOns(newConfig);
+    final Configuration previousConfig = mLastConfiguration;
+    mLastConfiguration = new Configuration(newConfig);
     super.onConfigurationChanged(newConfig);
     if (newConfig.orientation != mOrientation) {
       var lastOrientation = mOrientation;
       mOrientation = newConfig.orientation;
       onOrientationChanged(lastOrientation, mOrientation);
+    } else if (previousConfig != null
+        && (previousConfig.densityDpi != newConfig.densityDpi
+            || previousConfig.screenWidthDp != newConfig.screenWidthDp
+            || previousConfig.screenHeightDp != newConfig.screenHeightDp
+            || previousConfig.smallestScreenWidthDp != newConfig.smallestScreenWidthDp)) {
+      Logger.d(
+          TAG,
+          "Display metrics changed (%d->%d dpi, %dx%d->%dx%d dp); refreshing keyboard sizes",
+          previousConfig.densityDpi,
+          newConfig.densityDpi,
+          previousConfig.screenWidthDp,
+          previousConfig.screenHeightDp,
+          newConfig.screenWidthDp,
+          newConfig.screenHeightDp);
+      onKeyboardMetricsChanged(previousConfig, newConfig);
     }
   }
+
+  /**
+   * Called when the display metrics the keyboard is sized for changed (density or screen size)
+   * without the orientation changing. Theme dimensions and already-loaded keyboards hold pixel
+   * values calculated for the previous metrics, so implementations should re-apply them.
+   */
+  @CallSuper
+  protected void onKeyboardMetricsChanged(
+      @NonNull Configuration oldConfig, @NonNull Configuration newConfig) {}
 
   protected int getCurrentOrientation() {
     // must use the current configuration, since mOrientation may lag a bit.

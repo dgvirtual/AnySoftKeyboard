@@ -141,6 +141,7 @@ public class AnyKeyboardViewBase extends View implements InputViewBinder, Pointe
   protected OnKeyboardActionListener mKeyboardActionListener;
 
   @Nullable private KeyboardTheme mLastSetTheme = null;
+  private int mLastThemeDensityDpi = 0;
 
   /** Notes if the keyboard just changed, so that we could possibly reallocate the mBuffer. */
   protected boolean mKeyboardChanged;
@@ -458,7 +459,11 @@ public class AnyKeyboardViewBase extends View implements InputViewBinder, Pointe
   @SuppressWarnings("ReferenceEquality")
   @Override
   public void setKeyboardTheme(@NonNull KeyboardTheme theme) {
-    if (theme == mLastSetTheme) return;
+    // Theme dimensions are resolved from dp to px at application time, so the same theme object
+    // must be re-applied when the display density changed.
+    final int currentDensityDpi = getResources().getConfiguration().densityDpi;
+    if (theme == mLastSetTheme && mLastThemeDensityDpi == currentDensityDpi) return;
+    mLastThemeDensityDpi = currentDensityDpi;
 
     clearKeyIconsCache(true);
     mKeysIconBuilders.clear();

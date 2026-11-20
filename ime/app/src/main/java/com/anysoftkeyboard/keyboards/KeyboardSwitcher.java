@@ -434,6 +434,43 @@ public class KeyboardSwitcher {
     mLastEditorInfo = null;
   }
 
+  /**
+   * Re-calculates the geometry of the already-loaded keyboards using the current keyboard dimens,
+   * and pushes the current keyboard back to the input view. Key sizes are baked into a keyboard
+   * when it is loaded, so a density or screen-size change which does not change the orientation (a
+   * car display being attached, a display size/density override, the IME being shown on another
+   * display) would otherwise leave a keyboard sized for the previous display metrics on screen.
+   */
+  public void reloadKeyboardsForNewMetrics() {
+    if (mInputView == null) return;
+
+    final KeyboardDimens dimens = mInputView.getThemedKeyboardDimens();
+    for (AnyKeyboard keyboard : mAlphabetKeyboards) {
+      if (keyboard != null) keyboard.loadKeyboard(dimens);
+    }
+    for (AnyKeyboard keyboard : mSymbolsKeyboardsArray) {
+      if (keyboard != null) keyboard.loadKeyboard(dimens);
+    }
+
+    final AnyKeyboard current;
+    if (isAlphabetMode()) {
+      current =
+          mLastSelectedKeyboardIndex >= 0 && mLastSelectedKeyboardIndex < mAlphabetKeyboards.length
+              ? mAlphabetKeyboards[mLastSelectedKeyboardIndex]
+              : null;
+    } else {
+      current =
+          mLastSelectedSymbolsKeyboard >= 0
+                  && mLastSelectedSymbolsKeyboard < mSymbolsKeyboardsArray.length
+              ? mSymbolsKeyboardsArray[mLastSelectedSymbolsKeyboard]
+              : null;
+    }
+
+    if (current != null) {
+      mInputView.setKeyboard(current, peekNextAlphabetKeyboard(), peekNextSymbolsKeyboard());
+    }
+  }
+
   private void ensureKeyboardsAreBuilt() {
     if (mAlphabetKeyboards.length == 0
         || mSymbolsKeyboardsArray.length == 0

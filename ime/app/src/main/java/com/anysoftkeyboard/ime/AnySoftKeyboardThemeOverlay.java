@@ -2,6 +2,7 @@ package com.anysoftkeyboard.ime;
 
 import android.content.ComponentName;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import androidx.annotation.NonNull;
@@ -65,7 +66,6 @@ public abstract class AnySoftKeyboardThemeOverlay extends AnySoftKeyboardKeyboar
 
   protected void onThemeChanged(@NonNull KeyboardTheme theme) {
     mCurrentTheme = theme;
-
     // we'll need to reload the keyboards
     // TODO(vitalipom) - here recreate the current keyboard and clear all the others
 
@@ -107,6 +107,20 @@ public abstract class AnySoftKeyboardThemeOverlay extends AnySoftKeyboardKeyboar
     super.onStartInputView(info, restarting);
 
     applyThemeOverlay(info);
+  }
+
+  @Override
+  protected void onKeyboardMetricsChanged(
+      @NonNull Configuration oldConfig, @NonNull Configuration newConfig) {
+    // The theme holds dp values resolved to px when it was applied - re-apply it so the keys are
+    // sized for the new density, then let the keyboards be re-loaded with the refreshed dimens.
+    final KeyboardTheme currentTheme = mCurrentTheme;
+    final KeyboardViewContainerView inputViewContainer = getInputViewContainer();
+    if (currentTheme != null && inputViewContainer != null) {
+      inputViewContainer.setKeyboardTheme(currentTheme);
+      inputViewContainer.setThemeOverlay(mCurrentOverlayData);
+    }
+    super.onKeyboardMetricsChanged(oldConfig, newConfig);
   }
 
   protected void applyThemeOverlay(EditorInfo info) {

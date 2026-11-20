@@ -16,6 +16,7 @@
 
 package com.anysoftkeyboard.ime;
 
+import android.content.res.Configuration;
 import android.text.TextUtils;
 import android.view.View;
 import android.view.inputmethod.InputMethodSubtype;
@@ -55,6 +56,13 @@ public abstract class AnySoftKeyboardKeyboardSwitchedListener extends AnySoftKey
     super.onOrientationChanged(oldOrientation, newOrientation);
 
     mKeyboardSwitcher.flushKeyboardsCache();
+  }
+
+  @Override
+  protected void onKeyboardMetricsChanged(
+      @NonNull Configuration oldConfig, @NonNull Configuration newConfig) {
+    super.onKeyboardMetricsChanged(oldConfig, newConfig);
+    mKeyboardSwitcher.reloadKeyboardsForNewMetrics();
   }
 
   @Override
